@@ -85,7 +85,7 @@ model_args.evaluate_during_training = False
 model_args.n_best_size = 3
 model_args.num_train_epochs = 1
 
-### Advanced Methodology
+# Advanced Options
 train_args = {
     "reprocess_input_data": True,
     "overwrite_output_dir": True,
