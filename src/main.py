@@ -11,6 +11,7 @@ import sys
 from datasets import load_dataset
 from clqa_xlm import CLQAXLM
 from utils import write_results_to_file
+from constants import SQUAD, MLQA
 
 
 def main():
@@ -25,8 +26,6 @@ def main():
 
     is_bert = True
     is_xlt = True
-    train_data = 'squad'
-    eval_data = 'mlqa'
     lang_q = args.lang_q
     lang_a = args.lang_a
 
@@ -40,11 +39,11 @@ def main():
 
     model_type = "bert" if is_bert else "xlm"
     model_name = "bert-base-multilingual-cased" if is_bert else "xlm-mlm-tlm-xnli15-1024"
-    train = load_dataset(train_data)
-    evalset = load_dataset(eval_data, "{}.{}.{}".format(eval_data, lang_q, lang_a))  # Eg. "mlqa.en.en"
+    squad = load_dataset(SQUAD)
+    mlqa = load_dataset(MLQA, "{}.{}.{}".format(MLQA, lang_q, lang_a))  # Eg. "mlqa.en.en"
 
     if is_xlt:
-        clqa = CLQAXLM(lang_q, lang_a, model_name, model_type, train, evalset, evalset)
+        clqa = CLQAXLM(lang_q, lang_a, model_name, model_type, squad["train"], squad["validation"], mlqa["test"])
         clqa.config_model()
         clqa.train_model()
         answers, probs = clqa.predict_model()

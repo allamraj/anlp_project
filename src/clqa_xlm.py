@@ -6,10 +6,7 @@
 #
 # clqa_xlm.py
 
-import transformers
-from datasets import load_dataset, load_metric
-import logging
-import json
+import torch.cuda
 from simpletransformers.question_answering import QuestionAnsweringModel, QuestionAnsweringArgs
 from models import BaseModel
 
@@ -18,7 +15,7 @@ class CLQAXLM(BaseModel):
     """
     XLM model for Cross Lingual Question Answering
     Input:
-        Language pair -
+    XLM with simpletransformers requires input data in a specific format
     """
     def __init__(self, lang1, lang2, model_name, model_type, train_set, val_set, eval_set):
         (super(CLQAXLM, self).__init__(lang1, lang2, model_name, model_type, train_set, val_set, eval_set))
@@ -36,13 +33,14 @@ class CLQAXLM(BaseModel):
         model_args.num_train_epochs = 1
 
         model = QuestionAnsweringModel(
-            self.model_type, self.model_name, args=model_args
+            self.model_type, self.model_name, args=model_args, use_cuda=torch.cuda.is_available()
         )
         return model
 
     def train_model(self):
         self.model.train_model(self.train_set, eval_data=self.val_set)
 
+    # Currently, not being used
     def eval_model(self):
         result, texts = self.model.eval_model(self.eval_set)
 
@@ -91,15 +89,3 @@ class CLQAXLM(BaseModel):
             answer_formatted[answer['id']] = answer['answer'][0] if answer['answer'] else ''
 
         return answer_formatted
-
-    # !python /content/MLQA/mlqa_evaluation_v1.py\
-    #    '/content/MLQA_V1/test/test-context-en-question-en.json'\
-    #    '/content/enen_test.json' \
-    #    en
-    # {"exact_match": 38.86108714408973, "f1": 49.33358551461187}
-    #
-    # !python /content/MLQA/mlqa_evaluation_v1.py\
-    #    '/content/MLQA_V1/test/test-context-hi-question-hi.json'\
-    #    '/content/hihi_test.json' \
-    #    hi
-    # {"exact_match": 5.08336722244815, "f1": 7.805575746524095}
