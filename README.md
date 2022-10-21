@@ -9,18 +9,23 @@ being done in 3 viz. English, Spanish and Hindi
 
 #### Usage
 ```bash
-python ./main.py <model>
+python ./main.py <model> <task> <lang_q> <lang_c>
+```
+
+```text
+model = "bert", "xlm", "muril", "xlmr"
+task = "xlt", "gxlt"
+lang_q = "en", "hi", "es" (Question Language)
+lang_c = "en", "hi", "es" (Context Language)
 ```
 
 ### Requirements
 ```bash
-gensim
-nltk
-numpy
-pandas
-Pillow
-six
 torch
+transformers
+datasets
+sacremoses
+simpletransformers
 ```
 Requirements can bbe installed with
 ```bash
@@ -28,17 +33,20 @@ pip install -r requirements.txt
 ```
 
 ### Files in codebase
-```bash
-language_model.py - Main file
-models.py - Language Models
-data.py - Corpus Usage and Dataset
-constants.py - Constants
+```text
+main.py - Main file
+models.py - Base Model
+clqa_fast.py - Fast Tokenizer based models like BERT and XLMR
+clqa_nonfast.py - Python Tokenizer based models like XLM and MuRIL
+constants.py - constants
 utils.py - Utility Functions
+mlqa_evaluation_v1.py - Facebook's evaluation script for MLQA
+
 ```
 
 ### Links to files
 Reduced glove embeddings - 
-<a href="https://iiitaphyd-my.sharepoint.com/:u:/g/personal/aparajitha_allamraju_research_iiit_ac_in/EalVeVceFCJJnAERVEsa_R8Bt8dbZaiG2nu8eh16htpUlQ?e=WUbHYz">Here</a>
+<a href="">Here</a>
 
 Saved Language Model 1 - 
-<a href="https://iiitaphyd-my.sharepoint.com/:u:/g/personal/aparajitha_allamraju_research_iiit_ac_in/Ec710HxU1gtOgg-TbzZANFwBgRivdmOsQEsMBeQ0HlhQzQ?e=1KPJmP">Here</a>
+<a href="">Here</a>
