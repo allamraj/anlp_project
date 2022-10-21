@@ -45,8 +45,8 @@ mlqa_evaluation_v1.py - Facebook's evaluation script for MLQA
 ```
 
 ### Links to files
-Reduced glove embeddings - 
+Saved Model - 
 <a href="">Here</a>
 
-Saved Language Model 1 - 
+Saved Model - 
 <a href="">Here</a>

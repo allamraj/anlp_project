@@ -6,16 +6,10 @@
 #
 # clqa_fast.py
 
-from transformers import AutoTokenizer
-import transformers
 import torch
-import json
-from transformers import AutoConfig, AutoModelForQuestionAnswering, TrainingArguments, Trainer, default_data_collator
-import numpy as np
-import collections
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering, TrainingArguments, Trainer, default_data_collator
 from models import BaseModel
-from utils import *
-
+from utils import prepare_train_features, prepare_validation_features
 from constants import *
 
 
@@ -23,7 +17,7 @@ class FastCLQA(BaseModel):
     """
     Model for Cross Lingual Question Answering
     FastCLQA is for pretrained models that have fast tokenizers
-        eg. BERT, XLM-R
+        e.g. BERT, XLM-R
     """
     def __init__(self, model_name, model_type, train_set, eval_set):
         (super(FastCLQA, self).__init__(model_name, model_type))
@@ -34,8 +28,8 @@ class FastCLQA(BaseModel):
         self.pad_on_right = self.tokenizer.padding_side == "right"
         self.tokenized_train = self.train_set.map(prepare_train_features,
                                                   batched=True, remove_columns=self.train_set["train"].column_names)
-        self.tokenized_val = self.train_set["validation"].map(prepare_validation_features,
-                                                              batched=True, remove_columns=self.train_set["validation"].column_names)
+        self.tokenized_val = self.train_set["validation"].map(prepare_validation_features, batched=True,
+                                                              remove_columns=self.train_set["validation"].column_names)
         self.tokenized_eval = self.eval_set.map(prepare_validation_features,
                                                 batched=True, remove_columns=self.eval_set.column_names)
 
@@ -65,9 +59,16 @@ class FastCLQA(BaseModel):
     #     return self.tokenized_eval
 
     def eval_model(self):
+        """
+        Predict model on SQuAD validation data
+        """
         self.model.predict(self.tokenized_val)
 
     def predict_model(self):
+        """
+        Predict the model on the MLQA test data
+        :return: predictions
+        """
         predictions = self.model.predict(self.tokenized_eval)
         self.tokenized_eval.set_format(type=self.tokenized_eval.format["type"],
                                        columns=list(self.tokenized_eval.features.keys()))

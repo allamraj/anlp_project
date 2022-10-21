@@ -18,7 +18,7 @@ class NonFastCLQA(BaseModel):
     Model when no fast tokenizer present in HuggingFace
         eg. XLM, MuRIL
     Input:
-    QA in simpletransformers requires input data in a specific format
+        QA in simpletransformers requires input data in a specific format
     """
     def __init__(self, model_name, model_type, train_set, eval_set):
         (super(NonFastCLQA, self).__init__(model_name, model_type))
@@ -44,10 +44,18 @@ class NonFastCLQA(BaseModel):
         self.model = model.train_model(self.train_set, eval_data=self.val_set)
 
     def eval_model(self):
-        result, texts = self.model.eval_model(self.eval_set)
+        """
+        Placeholder to run on SQuAD validation set
+        :return:
+        """
+        result, texts = self.model.eval_model(self.val_set)
         return result, texts
 
     def predict_model(self):
+        """
+        Model predicts and returns both answers and probabilities
+        :return: Answers only
+        """
         ans, probabilities = self.model.predict(self.eval_set)
         answers = NonFastCLQA.format_answers(ans)
         return answers

@@ -13,6 +13,7 @@ import numpy as np
 from transformers import AutoTokenizer
 from constants import MAX_LEN, DOC_STRIDE
 
+# TODO: Find a better way to pass tokenizer and pad_on_right instead of global variables
 tokenizer = AutoTokenizer.from_pretrained('bert-base-multilingual-cased')
 pad_on_right = tokenizer.padding_side == "right"
 
@@ -41,8 +42,8 @@ def get_tokenized_data(data):
 
 def prepare_train_features(data):
     """
-    :param data:
-    :return:
+    :param data: SQuAD training data
+    :return: Tokenized training data
 
     Preparing the training data by formatting it to match a Question Answering model format
     """
@@ -101,8 +102,8 @@ def prepare_train_features(data):
 
 def prepare_validation_features(data):
     """
-    :param data:
-    :return:
+    :param data: MLQA test data OR SQuAD validation data
+    :return: tokenized test/validation data
 
     Prepare evaluation data to match validation format for Question Answering
     """
@@ -142,15 +143,15 @@ def prepare_validation_features(data):
 def postprocess_qa_predictions(data, features, raw_predictions, n_best_size=20, max_answer_length=30):
     """
 
-    :param data:
-    :param features:
-    :param raw_predictions:
+    :param data: predictions from the model
+    :param features: clqa.tokenized_eval or the validation features
+    :param raw_predictions: predictions.predictions
     :param n_best_size:
     :param max_answer_length:
-    :return:
+    :return: Processed predictions
 
     Step 0: Create a features dictionary that contain the indices to spans that belong to the same question
-    Step 1: Reverse Argsort the start and end logits
+    Step 1: Reverse argsort the start and end logits
     Step 2: Take the n_best_size from both the lists
     Step 3: Go through all possibilities for the n_best_size
     Step 4: Filter out the impossible combinations
@@ -185,7 +186,7 @@ def postprocess_qa_predictions(data, features, raw_predictions, n_best_size=20, 
             for start_index in start_indexes:
                 for end_index in end_indexes:
                     # Don't consider the answer if:
-                    # if end is less than start span len is greater than max ans len
+                    # end is less than start span len is greater than max ans len
                     # or start or end are greater len of offset
                     # or start or end don't exist in the mapping
                     if end_index < start_index or end_index - start_index + 1 > max_answer_length or \

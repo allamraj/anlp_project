@@ -7,14 +7,11 @@
 # main.py
 
 import argparse
-import os
 import sys
-import torch
 from datasets import load_dataset
-from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
 from clqa_nonfast import NonFastCLQA
 from clqa_fast import FastCLQA
-from utils import *
+from utils import postprocess_qa_predictions, write_results_to_file
 from constants import SQUAD, MLQA, SAVED_MODEL
 
 
@@ -58,19 +55,16 @@ def main():
     if not is_xlt and lang_q == lang_c:
         sys.exit("G-XLT task requires question and answer to be in different languages")
 
-    model_save_path = "{}_{}".format(name, SAVED_MODEL)
-
     squad = load_dataset(SQUAD)
     mlqa = load_dataset(MLQA, "{}.{}.{}".format(MLQA, lang_q, lang_c))  # Eg. "mlqa.en.en"
 
     # TODO: Figure out a better way to save and load models
+    # model_save_path = "{}_{}".format(name, SAVED_MODEL)
     # if os.path.exists(model_save_path):
     # model = AutoModelForQuestionAnswering.from_pretrained(model_save_path).to(device)
     # else:
 
-    final_predictions = ""
     if has_fast:
-        # config = AutoConfig.from_pretrained(model_name)
         clqa = FastCLQA(model_name, model_type, squad, mlqa["test"])
         clqa.train_model()
         predictions = clqa.predict_model()
