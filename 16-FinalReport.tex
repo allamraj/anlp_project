@@ -1,0 +1,254 @@
+\documentclass[12pt]{article}   % list options between brackets
+ % list packages between braces
+
+\usepackage{hyperref}	
+\usepackage[round]{natbib}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{subcaption}
+
+\pagecolor{white}
+
+\def\hfillx{\hspace*{-\textwidth}\hfill}
+% type user-defined commands here
+
+\begin{document}
+
+\title{Cross-Lingual Question Answering}   % type title between braces
+\author{A Aparajitha(2022814001), Darshana S(2022701012)}         % type author(s) between braces
+\date{November 16, 2022}    % type date between braces
+\maketitle
+
+\section{Introduction}
+
+The objective of extractive Question Answering (QA) is to find the answer to a question as a span of words from a given context paragraph. The span is set by the start and end positions in the context. The data for Extractive QA is of the form $\{c, q, a)\}$. Datasets for QA in languages other than English are sparse. Creation of such datasets is expensive and requires either a lot of manual work or good quality machine translations. \\ \\Cross lingual learning is an approach that tries to solve these issues by transferring the knowledge acquired from one language to another. More specifically, the goal is to transfer the knowledge from a high resource language to a low resource language. In the context of QA, for example, this can be from English to Hindi. Formally, Cross Lingual Transfer (XLT) task for QA requires a model trained with $\{c_{l_{x}}, q_{l_{x}}, a_{l_{x}}\}$ to be able to predict the answer span in $\{c_{l_{y}}, q_{l_{y}}, a_{l_{y}}\}$ where $l_{x}$ is typically a high resource language and $l_{y}$ is low resource. Generalized Cross Lingual Transfer (G-XLT) task extends XLT for extracting answers from $\{c_{l_{y}}, q_{l_{z}}, a_{l_{y}}\}$ where $l_{y}$ and $l_{z}$ can be any two different languages. Fair evaluation of such systems requires high quality parallel multilingual benchmarks. MLQA (\cite{lewis2020mlqa}) is a benchmark covering 7 languages and diverse domains. 
+\\ \\The project uses the baseline set by MLQA. We attempt to build a cross-lingual QA model (CLQA) by training it with English data and evaluating with English, Spanish and Hindi in different zero-shot and few-shot settings. We also experiment various methods to improve over the baseline and analyze the different results.
+
+\section{Dataset}
+
+SQuAD (\cite{rajpurkar2016squad}) is a monolingual dataset $\{c_{en}, q_{en}, a_{en}\}$ covering over 100,000 samples from several articles. We use SQuAD v1.1, which does not contain any unanswerable questions to fine-tune over pre-trained large language models.
+\\ \\
+MLQA contains QA samples for 7 different languages including English. For the purpose of the project we are choosing English, Spanish and Hindi. The languages are chosen based on their similarity and distance from English and the baseline values. Spanish due to its similarity with English performed significantly better in the baseline compared to Hindi which is syntactically and typologically different from English. \\ \\ Appendix A contains more details on the data.
+
+ \begin{table}[h]
+            \centering
+		\begin{tabular}{|c|c|c|}
+			\hline
+ 			 \textbf{EN} &  \textbf{ES} &  \textbf{HI} \\
+			\hline
+			 11590 & 5253 & 4918 \\
+			\hline
+		\end{tabular}
+		\caption{Number of Instances}
+
+\end{table}
+
+\section{Baseline}
+ 
+We reproduced the results of MLQA baseline using mBERT (\cite{devlin2018bert}) and XLM-R (\cite{lample2019cross}) as the pre-trained models and then fine-tuned them on SQuAD v1.1 dataset. We chose the most popular and best performing SOTA language models for setting the baseline.
+\\ \\
+We have also evaluated the benchmark using MuRIL (\cite{muril}) pre-trained model instead of BERT. MuRIL is a multilingual LM specifically built for Indian Languages. It is trained on 16 Indian languages and English. 
+
+\section{Approaches}
+
+\subsection{Few Shot Transfer}
+
+As a way to improve the performance we explored to see if few-shot transfer would perform better than zero shot transfer . From the research conducted by \cite{lauscher-etal-2020-zero} it was concluded that for higher level language tasks the gains are less pronounced with few-shot even after seeing 1,000 target language instances. To test in a few shot setting, we fine-tuned the model on 500 instances of Hindi and Spanish separately and together. Considering the resources, we used the samples from the MLQA dev data. As can be seen in the results, there is a performance improvement for Hindi and Spanish.
+
+\subsection{k-Best Answers}
+Evaluation on MLQA is done with just one top answer. We tried evaluating with XLM-R using the top 3 best answers instead and found the model to perform better which was in line with what we expected. The models are able to find the spans correctly but it is not always the best answer.
+
+\section{Analysis}
+\subsection{Language Models}
+Large Language Models (LLMs) with the vast amount of data learn the syntax and semantics of all the languages they are trained on. As can be seen in (\cite{petroni-etal-2019-language}; \cite{mulfew}) LLMs learn not just language but also facts and can be considered Knowledge Bases.
+
+\subsection{Language Models for QA}
+Current SOTA models like XLM-R (\cite{conneau2019unsupervised}), XLM-E (\cite{chi2021xlm}), InfoXLM (\cite{chi-etal-2021-infoxlm}) and mT5 (\cite{xue-etal-2021-mt5}) are all trained with a Language Modeling objective. Replicating a massive language modeling objective is beyond our current scope. One possible way is to use a pre-trained model other than BERT and XLM as a way to improve the F1 scores. Observing the XTREME (\cite{xtreme}) leaderboard, it is clear that Question Answering task is not the one pulling up the averages.  Pre-trained Language Modeling for Question Answering is an intriguing research area (\cite{jnm}).
+
+\subsection{Alternate Datasets}
+We explored the idea of using a different dataset to fine-tune with instead of SQuAD but were limited by the availability of the same. We were looking for datasets that might in be better languages (\cite{lin-etal-2019-choosing}) to transfer from in a zero-shot setting. It is evident that the lack of data is what led to cross-lingual transfer learning when we tried to consider languages other than English. 
+
+\subsection{Pre-training Objectives}
+
+
+\subsection{Reinforcement Learning}
+
+\subsection{Language Alignment}
+
+\subsection{Knowledge Graphs}
+We have also looked into using knowledge graphs through models like XLM-K (\cite{xlmk}) and through approaches like (\cite{isdg}) and could not see any improvement as expected.
+
+\subsection{Distillation}
+
+\subsection{Data Augmentation}
+We looked into data augmentation (\cite{riabi-etal-2021-synthetic}) and once again faced with underwhelming performance on QA task. We also considered data augmentation through translation. (\cite{debnath-etal-2021-towards}) do several experiments on few-shot transfer and data augmentation through translation on the {T}y{D}i {QA} dataset (\cite{clark-etal-2020-tydi}).
+
+\section{Performance of Hindi}
+\subsection{Transliteration}
+As can be seen in the Appendix A, some of the questions in Hindi are transliterations and not translations where the context has the translation for the words. This inconsistency might be possible due to the approach used for data collection. While the context is directly taken from parallel Wikipedia, professional translators, translated the question from English to Hindi and other target languages.
+\\ \\
+Prior experiments (\cite{pires-etal-2019-multilingual}) on the effective transfer to transliterated languages suggest that mBERT might not be effective in such scenarios. As we can also see from the results, the model performs better with XLM-R (\cite{conneau2019unsupervised}) which is better equipped for code-switching due to its pre-training objective but there is no evidence to point for improved performance with transliteration. Though MuRIL uses a transliterated dataset (\cite{roark-etal-2020-processing}) and transliterated (\cite{indictrans}) Wikipedia, the transliteration goes from Indian languages to Latin script and not from English to Indian scripts. We believe that this might be one of the reasons for the models to not perform very well in Hindi.	
+\subsection{Low Resource}
+While mBERT uses Wikipedia, XLM-R trains on the Common Crawl corpus. (\cite{wu-dredze-2020-languages}), we can see that though English accounts for a large amount of data, cross-lingual transfer learning should work even on low-resource languages.
+
+
+\subsection{Hybrid Approach}
+IBM Watson rule based with alignment
+
+\subsection{Multitask Learning}
+We also considered the approach of Multitask Learning with an auxiliary task. Extractive summarization seemed to be the closest task to extractive QA. (\cite{ahuja-etal-2022-multi}) explore the idea of joint training to improve zero-shot performance in multilingual models. The relationship between languages is also explored.
+
+\subsection{Future Work}
+Traditionally, extractive QA has been worked on with an independence assumption for modeling the span probabilities i.e. $P(span) = P(span_{start}) * P(span_{end})$. Work (\cite{fajcik-etal-2021-rethinking}) on a joint probability model $P(span_{start}, span_{end})$ may be attempted in a multilingual setting.
+\\ \\
+We did not attempt to use any of the generator family models (\cite{xue-etal-2021-mt5}; \cite{dabre-etal-2022-indicbart}) for performing the task of extractive QA. With minor modifications, it is possible to test the performance of these models on a non-generation task.
+
+
+\section{Results}
+
+Fine-tuning for all models except XLM was done for only 1 epoch for the initial results. XLM was trained with 2 epochs. We are not reporting the results of XLM as we are still fine-tuning it. All tables have the question language as columns and context language as rows. As expected with MuRIL, the F1 scores and Exact match for XLT in Hindi and G-XLT in En-Hi and Hi-En improved but data involving Spanish did not produce desirable results. 
+
+ \begin{table}[h]
+        \begin{minipage}{0.5\textwidth}
+            \centering
+		\begin{tabular}{|c|c|c|c|}
+			\hline
+ 			\textbf{Q/C} &  \textbf{EN} &  \textbf{ES} &  \textbf{HI} \\
+			\hline
+			 \textbf{EN} & 79.27 & 52.31 & 29.80 \\
+			\hline
+			\textbf{ES} & 49.41 & 46.24 & 21.47 \\
+			\hline
+			\textbf{HI} & 39.84 & 32.09 & 34.01 \\
+			\hline
+		\end{tabular}
+		\caption{F1 on BERT}
+	\end{minipage}%
+        \hfill
+	\begin{minipage}{0.5\textwidth}
+         	\centering
+			\begin{tabular}{|c|c|c|c|}
+				\hline
+				 \textbf{Q/C} &  \textbf{EN} &  \textbf{ES} &  \textbf{HI} \\
+				\hline
+				\textbf{EN} & 66.16& 52.31 & 29.80 \\
+				 \hline
+				\textbf{ES} & 49.41 & 46.24 & 21.47 \\
+				\hline
+				 \textbf{HI} & 39.85& 32.09 & 34.01\\
+				 \hline
+			\end{tabular}
+			\caption{Exact Match on BERT}
+	\end{minipage}%
+\end{table}
+
+\begin{table}[h]
+        \begin{minipage}{0.5\textwidth}
+            \centering
+		\begin{tabular}{|c|c|c|c|}
+			\hline
+ 			\textbf{Q/C} &  \textbf{EN} &  \textbf{ES} &  \textbf{HI} \\
+			\hline
+			 \textbf{EN} & 58.08 & - &  8.61 \\
+			\hline
+			\textbf{ES} & - & 6.24 & 0.36 \\
+			\hline
+			\textbf{HI} & 47.09 & 1.39 & 43.33 \\
+			\hline
+		\end{tabular}
+		\caption{F1 on MuRIL}
+	\end{minipage}%
+        \hfill
+	\begin{minipage}{0.5\textwidth}
+         	\centering
+			\begin{tabular}{|c|c|c|c|}
+				\hline
+				 \textbf{Q/C} &  \textbf{EN} &  \textbf{ES} &  \textbf{HI} \\
+				\hline
+				\textbf{EN} & 48.74 & - & 5.73 \\
+				 \hline
+				\textbf{ES} & - & 2.93 & 0.23 \\
+				\hline
+				 \textbf{HI} & 35.94 & 1.10 & 32.20\\
+				 \hline
+			\end{tabular}
+			\caption{Exact Match on MuRIL}
+	\end{minipage}%
+\end{table}
+
+ \begin{table}[h]
+        \begin{minipage}{0.5\textwidth}
+            \centering
+		\begin{tabular}{|c|c|c|c|}
+			\hline
+ 			\textbf{Q/C} &  \textbf{EN} &  \textbf{ES} &  \textbf{HI} \\
+			\hline
+			 \textbf{EN} & 78.85 & 58.77 & 49.67 \\
+			\hline
+			\textbf{ES} & 66.16 & 67.17 & 36.25 \\
+			\hline
+			\textbf{HI} & 57.82 & 39.05 & 59.94 \\
+			\hline
+		\end{tabular}
+		\caption{F1 on XLM-R}
+	\end{minipage}%
+        \hfill
+	\begin{minipage}{0.5\textwidth}
+         	\centering
+			\begin{tabular}{|c|c|c|c|}
+				\hline
+				 \textbf{Q/C} &  \textbf{EN} &  \textbf{ES} &  \textbf{HI} \\
+				\hline
+				\textbf{EN} & 65.80& 44.92 & 37.02 \\
+				 \hline
+				\textbf{ES} & 48.98 & 49.07 & 22.52 \\
+				\hline
+				 \textbf{HI} & 41.68& 25.36 & 42.94\\
+				 \hline
+			\end{tabular}
+			\caption{Exact Match on XLM-R}
+	\end{minipage}%
+\end{table}
+
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{Datasets}
+
+\subsection{Sample Questions and Answers in Hindi}
+
+
+\begin{figure}[h]
+\centering
+
+\includegraphics[width = \textwidth]{dirtroad.png}
+\caption{Sample 1}
+\label{fig:dirtroad}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width = \textwidth]{groomlake.png}
+\caption{Sample 2}
+\label{fig:groomlake}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width = \textwidth]{lockhead.png}
+\caption{Sample 4}
+\label{fig:lockhead}
+
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width = \textwidth]{eight.png}
+\caption{Sample 3}
+\label{fig:eight}
+\end{figure}
+
+
+\end{document}

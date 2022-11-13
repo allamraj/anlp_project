@@ -8,6 +8,7 @@ by Facebook for evaluating extractive cross lingual question answering.
 being done in 3 viz. English, Spanish and Hindi
 
 #### Usage
+Running the models
 ```bash
 python ./main.py <model> <task> <lang_q> <lang_c>
 ```
@@ -17,6 +18,13 @@ model = "bert", "xlm", "muril", "xlmr"
 task = "xlt", "gxlt"
 lang_q = "en", "hi", "es" (Question Language)
 lang_c = "en", "hi", "es" (Context Language)
+```
+Running the MLQA evaluation
+```bash
+python mlqa_evaluation_v1.py \
+   path/to/MLQA_V1/test-context-<lang_c>-question-<lang_q>.json \
+   path/to/predictions.json \
+   <lang_c>
 ```
 
 ### Requirements
@@ -45,8 +53,19 @@ mlqa_evaluation_v1.py - Facebook's evaluation script for MLQA
 ```
 
 ### Links to files
-Saved Model - 
-<a href="">Here</a>
+Fine-tuned BERT - 
+<a href="https://huggingface.co/darshana1406/bert-base-multilingual-cased-finetuned-squad">Here</a>
 
-Saved Model - 
-<a href="">Here</a>
+Fine-tuned XLM - 
+<a href="https://iiitaphyd-my.sharepoint.com/:u:/g/personal/aparajitha_allamraju_research_iiit_ac_in/ERZStpKmgwNAh1V3t8JekPABMXpL75CE2KbxpJNzpriKgQ?e=jq5b5e">Here</a>
+
+Fine-tuned MuRIL - 
+<a href="https://iiitaphyd-my.sharepoint.com/:u:/g/personal/aparajitha_allamraju_research_iiit_ac_in/EYXUdbaskapHiMNB6J4JavsB93NjxmpBIp7D5ujePoMO0w?e=lWr2eP">Here</a>
+
+Fine-tuned XLM-R - 
+<a href="https://huggingface.co/darshana1406/xlm-roberta-base-finetuned-squad">Here</a>
+
+
+### Reference
+P Lewis, B Oğuz, R. Rinot, S. Riedel and H. Schwenk MLQA: Evaluating Cross-lingual Extractive Question Answering
+
