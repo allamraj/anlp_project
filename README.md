@@ -10,7 +10,7 @@ being done in 3 viz. English, Spanish and Hindi
 #### Usage
 Running the models
 ```bash
-python ./main.py <model> <task> <lang_q> <lang_c>
+python ./main.py <model> <task> <lang_q> <lang_c> <top>
 ```
 
 ```text
@@ -18,10 +18,12 @@ model = "bert", "xlm", "muril", "xlmr"
 task = "xlt", "gxlt"
 lang_q = "en", "hi", "es" (Question Language)
 lang_c = "en", "hi", "es" (Context Language)
+top = "1", "3", "20" (Top k best answers)
 ```
 Running the MLQA evaluation
+v1 is the original evaluation for MLQA. v2 does the evaluation for top k best answers
 ```bash
-python mlqa_evaluation_v1.py \
+python mlqa_evaluation_v<1/2>.py \
    path/to/MLQA_V1/test-context-<lang_c>-question-<lang_q>.json \
    path/to/predictions.json \
    <lang_c>
@@ -49,6 +51,7 @@ clqa_nonfast.py - Python Tokenizer based models like XLM and MuRIL
 constants.py - constants
 utils.py - Utility Functions
 mlqa_evaluation_v1.py - Facebook's evaluation script for MLQA
+mlqa_evaluation_v2.py - Evaluation script fot top k answers
 
 ```
 
