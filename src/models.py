@@ -6,7 +6,9 @@
 #
 # models.py
 
+import torch
 from abc import ABC, abstractmethod
+from transformers import Trainer
 
 
 class BaseModel(ABC):
@@ -39,3 +41,24 @@ class BaseModel(ABC):
     @abstractmethod
     def predict_model(self):
         pass
+
+
+class CustomTrainer(Trainer):
+    """
+        Custom Trainer for MML Loss
+    """
+    def compute_loss(self, model, inputs, return_outputs=False):
+        start_labels = inputs.pop("start_positions_topk", None)
+        end_labels = inputs.pop("end_positions_topk", None)
+        outputs = model(**inputs)
+        start_logits = outputs.get("start_logits")
+        end_logits = outputs.get("end_logits")
+        loss_fct = torch.nn.CrossEntropyLoss()
+        loss_tensor = torch.zeros(start_labels.shape)
+        for i in range(len(start_labels)):
+            start_loss = loss_fct(start_logits, start_labels[:, i])
+            end_loss = loss_fct(end_logits, end_labels[:, i])
+            loss_tensor[:, i] = start_loss + end_loss
+
+        loss = -torch.sum(torch.log(torch.sum(torch.exp(-loss_tensor - 1e10 * (loss_tensor == 0).float()), 1)))
+        return (loss, outputs) if return_outputs else loss

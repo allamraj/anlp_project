@@ -12,16 +12,17 @@ from datasets import load_dataset
 from clqa_nonfast import NonFastCLQA
 from clqa_fast import FastCLQA
 from utils import postprocess_qa_predictions, write_results_to_file
-from constants import SQUAD, MLQA, SAVED_MODEL
+from constants import SQUAD, MLQA
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('model', choices=["bert", "xlm", "muril", "xlmr"], help="BERT or XLM")
+    parser.add_argument('model', choices=["bert", "xlm", "muril", "xlmr", "mml"], help="BERT or XLM")
     parser.add_argument('task', choices=["xlt", "gxlt"], help="XLT or G-XLT task")
     # parser.add_argument('train', choices=["squad", ""], help="SQuAD")
     parser.add_argument('lang_q', choices=["en", "hi", "es"], help="Language of the question - en, es, hi")
     parser.add_argument('lang_c', choices=["en", "hi", "es"], help="Language of the answer - en, es, hi")
+    parser.add_argument('top', choices=["1", "3", "20"], help="Top k best answers")
 
     args = parser.parse_args()
 
@@ -32,6 +33,7 @@ def main():
     model_type = ""
     lang_q = args.lang_q  # Question Language
     lang_c = args.lang_c  # Context Language
+    mml = False
 
     match name:
         case "bert":
@@ -48,6 +50,11 @@ def main():
             model_type = "roberta-base"
             model_name = "xlm-roberta-base"
             has_fast = True
+        case "mml":
+            model_type = "roberta-base"
+            model_name = "darshana1406/xlm-roberta-base-finetuned-squad-top20-mml"
+            has_fast = True
+            mml = True
 
     if args.task == 'gxlt':
         is_xlt = False
@@ -58,21 +65,20 @@ def main():
     squad = load_dataset(SQUAD)
     mlqa = load_dataset(MLQA, "{}.{}.{}".format(MLQA, lang_q, lang_c))  # Eg. "mlqa.en.en"
 
-    # TODO: Figure out a better way to save and load models
-    # model_save_path = "{}_{}".format(name, SAVED_MODEL)
-    # if os.path.exists(model_save_path):
-    # model = AutoModelForQuestionAnswering.from_pretrained(model_save_path).to(device)
-    # else:
-
-    if has_fast:
+    # If mml then only evaluate the model and not train
+    if has_fast and not mml:
         clqa = FastCLQA(model_name, model_type, squad, mlqa["test"])
         clqa.train_model()
         predictions = clqa.predict_model()
         final_predictions = postprocess_qa_predictions(mlqa["test"], clqa.tokenized_eval, predictions.predictions)
-    else:
+    elif not has_fast and not mml:
         clqa = NonFastCLQA(model_name, model_type, squad, mlqa["test"])
         clqa.train_model()
         final_predictions = clqa.predict_model()
+    else:
+        clqa = FastCLQA(model_name, model_type, squad, mlqa["test"])
+        predictions = clqa.predict_model()
+        final_predictions = postprocess_qa_predictions(mlqa["test"], clqa.tokenized_eval, predictions.predictions)
 
     write_results_to_file(file_path="{}_{}_{}.json".format(lang_q, lang_c, name), text=final_predictions)
 

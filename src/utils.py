@@ -13,7 +13,6 @@ import numpy as np
 from transformers import AutoTokenizer
 from constants import MAX_LEN, DOC_STRIDE
 
-# TODO: Find a better way to pass tokenizer and pad_on_right instead of global variables
 tokenizer = AutoTokenizer.from_pretrained('bert-base-multilingual-cased')
 pad_on_right = tokenizer.padding_side == "right"
 
@@ -209,5 +208,185 @@ def postprocess_qa_predictions(data, features, raw_predictions, n_best_size=20, 
 
         answer = best_answer["text"]
         predictions[d["id"]] = answer
+
+    return predictions
+
+
+def prepare_train_features_topk(data):
+    """
+    Prepare train features for top 20 answers
+    :param data:
+    :return:
+    """
+    data["question"] = [q.lstrip() for q in data["question"]]
+
+    tokenized_train = tokenizer(
+        data["question" if pad_on_right else "context"],
+        data["context" if pad_on_right else "question"],
+        truncation="only_second" if pad_on_right else "only_first",
+        max_length=384,
+        stride=128,
+        return_overflowing_tokens=True,
+        return_offsets_mapping=True,
+        padding="max_length",
+    )
+
+    sample_mapping = tokenized_train.pop("overflow_to_sample_mapping")
+    offset_mapping = tokenized_train.pop("offset_mapping")
+
+    tokenized_train["start_positions"] = []
+    tokenized_train["end_positions"] = []
+    tokenized_train["start_positions_topk"] = []
+    tokenized_train["end_positions_topk"] = []
+
+    for i, offsets in enumerate(offset_mapping):
+        input_ids = tokenized_train["input_ids"][i]
+        cls_index = input_ids.index(tokenizer.cls_token_id)
+        sequence_ids = tokenized_train.sequence_ids(i)
+
+        sample_index = sample_mapping[i]
+        answers = data["answers"][sample_index]
+
+        if len(answers["answer_start"]) == 0:
+            tokenized_train["start_positions_topk"].append([cls_index])
+            tokenized_train["end_positions_topk"].append([cls_index])
+            tokenized_train["start_positions"].append([cls_index])
+            tokenized_train["end_positions"].append([cls_index])
+        else:
+            token_start_index = 0
+            while sequence_ids[token_start_index] != (1 if pad_on_right else 0):
+                token_start_index += 1
+
+            token_end_index = len(input_ids) - 1
+            while sequence_ids[token_end_index] != (1 if pad_on_right else 0):
+                token_end_index -= 1
+
+            start_char = answers["answer_start"][0]
+            end_char = start_char + len(answers["text"][0])
+
+            if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
+                tokenized_train["start_positions"].append(cls_index)
+                tokenized_train["end_positions"].append(cls_index)
+            else:
+                while token_start_index < len(offsets) and offsets[token_start_index][0] <= start_char:
+                    token_start_index += 1
+                tokenized_train["start_positions"].append(token_start_index - 1)
+                while offsets[token_end_index][1] >= end_char:
+                    token_end_index -= 1
+                tokenized_train["end_positions"].append(token_end_index + 1)
+
+            start_pos = []
+            end_pos = []
+            for start_char, end_char in zip(data["answer_start"][sample_index],
+                                            data["answer_end"][sample_index]):
+
+                token_start_index = 0
+                while sequence_ids[token_start_index] != (1 if pad_on_right else 0):
+                    token_start_index += 1
+
+                token_end_index = len(input_ids) - 1
+                while sequence_ids[token_end_index] != (1 if pad_on_right else 0):
+                    token_end_index -= 1
+
+                if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
+                    start_pos.append(cls_index)
+                    end_pos.append(cls_index)
+                else:
+                    while token_start_index < len(offsets) and offsets[token_start_index][0] <= start_char:
+                        token_start_index += 1
+                    start_pos.append(token_start_index - 1)  # list of tokens
+
+                    while offsets[token_end_index][1] >= end_char:
+                        token_end_index -= 1
+                    end_pos.append(token_end_index + 1)  # list of tokens
+
+            tokenized_train["start_positions_topk"].append(start_pos)
+            tokenized_train["end_positions_topk"].append(end_pos)
+
+    return tokenized_train
+
+
+def postprocess_qa_predictions_topk(data, features, raw_predictions, n_best_size=50, max_answer_length=30):
+    """
+    :param data: predictions from the model
+    :param features: clqa.tokenized_eval or the validation features
+    :param raw_predictions: predictions.predictions
+    :param n_best_size:
+    :param max_answer_length:
+    :return: Processed predictions
+    """
+    all_start_logits, all_end_logits = raw_predictions
+    example_id_to_index = {k: i for i, k in enumerate(data["id"])}
+    features_per_example = collections.defaultdict(list)
+    for i, feature in enumerate(features):
+        features_per_example[example_id_to_index[feature["example_id"]]].append(i)
+
+    predictions = []
+
+    for example_index, example in enumerate(tqdm(data)):
+        feature_indices = features_per_example[example_index]
+
+        valid_answers = []
+        start_tokens = []
+        end_tokens = []
+        pred = example
+
+        context = example["context"]
+        for feature_index in feature_indices:
+            start_logits = all_start_logits[feature_index]
+            end_logits = all_end_logits[feature_index]
+            offset_mapping = features[feature_index]["offset_mapping"]
+
+            cls_index = features[feature_index]["input_ids"].index(tokenizer.cls_token_id)
+            feature_null_score = start_logits[cls_index] + end_logits[cls_index]
+            if min_null_score is None or min_null_score < feature_null_score:
+                min_null_score = feature_null_score
+
+            start_indexes = np.argsort(start_logits)[-1: -n_best_size - 1: -1].tolist()
+            end_indexes = np.argsort(end_logits)[-1: -n_best_size - 1: -1].tolist()
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    if (
+                            start_index >= len(offset_mapping)
+                            or end_index >= len(offset_mapping)
+                            or offset_mapping[start_index] is None
+                            or offset_mapping[end_index] is None
+                    ):
+                        continue
+                    if end_index < start_index or end_index - start_index + 1 > max_answer_length:
+                        continue
+
+                    start_char = offset_mapping[start_index][0]
+                    end_char = offset_mapping[end_index][1]
+                    valid_answers.append(
+                        {
+                            "score": start_logits[start_index] + end_logits[end_index],
+                            "text": context[start_char: end_char],
+                            "start": start_char,
+                            "end": end_char
+                        }
+                    )
+
+        if len(valid_answers) > 20:
+            best_answer = sorted(valid_answers, key=lambda x: x["score"], reverse=True)[0:20]
+        else:
+            best_answer = valid_answers
+            print("NOOOOOOO {}".format(example["id"]))
+        answers = []
+        for ans in best_answer:
+            answers.append(ans["text"])
+            start_tokens.append(ans["start"])
+            end_tokens.append(ans["end"])
+
+        start = example["answers"]["answer_start"][0]
+        end = start + len(example["answers"]["text"][0])
+        if (start, end) not in set(zip(start_tokens, end_tokens)):
+            start_tokens[-1] = start
+            end_tokens[-1] = end
+        pred["text"] = answers
+        pred["answer_start"] = start_tokens
+        pred["answer_end"] = end_tokens
+
+        predictions.append(pred)
 
     return predictions
